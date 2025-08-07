@@ -16,20 +16,20 @@ if ! command -v docker-compose > /dev/null 2>&1; then
 fi
 
 # Check if .env file exists
-if [ ! -f ".env" ]; then
-    echo "⚠️  Warning: .env file not found. Creating from example..."
+if [ ! -f "docker.env" ]; then
+    echo "⚠️  Warning: docker.env file not found. Creating from example..."
     if [ -f "docker.env.example" ]; then
-        cp docker.env.example .env
-        echo "📝 Please edit .env file with your email configuration:"
+        cp docker.env.example docker.env
+        echo "📝 Please edit docker.env file with your email configuration:"
         echo "   - SMTP_USER: Your email address"
         echo "   - SMTP_PASSWORD: Your email app password"
         echo "   - EMAIL_FROM: Your sender email"
         echo "   - EMAIL_SENDER_NAME: Your name"
         echo ""
-        echo "Press Enter after updating .env file, or Ctrl+C to exit..."
+        echo "Press Enter after updating docker.env file, or Ctrl+C to exit..."
         read -r
     else
-        echo "❌ Error: docker.env.example not found. Please create .env file manually."
+        echo "❌ Error: docker.env.example not found. Please create docker.env file manually."
         exit 1
     fi
 fi

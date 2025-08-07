@@ -5,14 +5,17 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
     name: '',
     subject: '',
     body: '',
-    attachments: []
+    attachments: [],
+    isDefault: false
   });
+  const [originalTemplate, setOriginalTemplate] = useState(null);
   const [savedTemplates, setSavedTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
   const [newAttachments, setNewAttachments] = useState([]);
+  const [removedAttachments, setRemovedAttachments] = useState([]);
 
   useEffect(() => {
     loadDefaultTemplate();
@@ -34,7 +37,10 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
         const data = await response.json();
         if (data.data) {
           setTemplate(data.data);
+          setOriginalTemplate(data.data);
           setSelectedTemplateId(data.data._id);
+          setNewAttachments([]);
+          setRemovedAttachments([]);
         }
       }
     } catch (error) {
@@ -58,8 +64,12 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
 
   const handleTemplateSelect = async (templateId) => {
     if (!templateId) {
-      setTemplate({ name: '', subject: '', body: '', attachments: [] });
+      const emptyTemplate = { name: '', subject: '', body: '', attachments: [], isDefault: false };
+      setTemplate(emptyTemplate);
+      setOriginalTemplate(null);
       setSelectedTemplateId('');
+      setNewAttachments([]);
+      setRemovedAttachments([]);
       return;
     }
 
@@ -69,7 +79,10 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
       if (response.ok) {
         const data = await response.json();
         setTemplate(data.data);
+        setOriginalTemplate(data.data);
         setSelectedTemplateId(templateId);
+        setNewAttachments([]);
+        setRemovedAttachments([]);
       }
     } catch (error) {
       console.error('Failed to load template:', error);
@@ -86,12 +99,24 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
       formData.append('name', template.name || 'Email Template');
       formData.append('subject', template.subject);
       formData.append('body', template.body);
-      // Don't automatically set as default - user can choose explicitly
+      
+      // Only send isDefault if the template was originally the default
+      // This preserves the original default status without changing it
+      if (originalTemplate && originalTemplate.isDefault) {
+        formData.append('isDefault', 'true');
+      }
 
       // Add new attachments
       newAttachments.forEach(file => {
         formData.append('attachments', file);
       });
+
+      // Add removed attachment IDs
+      if (removedAttachments.length > 0) {
+        removedAttachments.forEach(attachmentId => {
+          formData.append('removeAttachments', attachmentId);
+        });
+      }
 
       let response;
       if (selectedTemplateId) {
@@ -111,8 +136,10 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
       if (response.ok) {
         const data = await response.json();
         setTemplate(data.data);
+        setOriginalTemplate(data.data);
         setSelectedTemplateId(data.data._id);
         setNewAttachments([]);
+        setRemovedAttachments([]);
         
         // Reload templates list
         await loadSavedTemplates();
@@ -180,6 +207,11 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
         // Reload the template if it's the currently selected one
         if (selectedTemplateId === templateId) {
           await handleTemplateSelect(templateId);
+        } else {
+          // Update the current template state if it's the one being set as default
+          const updatedTemplate = { ...template, isDefault: true };
+          setTemplate(updatedTemplate);
+          setOriginalTemplate(updatedTemplate);
         }
         alert('Template set as default successfully!');
       } else {
@@ -227,6 +259,10 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
   };
 
   const removeExistingAttachment = (attachmentId) => {
+    // Add to removed attachments list
+    setRemovedAttachments(prev => [...prev, attachmentId]);
+    
+    // Remove from template's current attachments
     setTemplate(prev => ({
       ...prev,
       attachments: prev.attachments.filter(att => att._id !== attachmentId)
@@ -455,9 +491,12 @@ const EmailTemplateEditor = ({ onTemplateChange, onSave }) => {
           
           <button
             onClick={() => {
-              setTemplate({ name: '', subject: '', body: '', attachments: [] });
+              const emptyTemplate = { name: '', subject: '', body: '', attachments: [], isDefault: false };
+              setTemplate(emptyTemplate);
+              setOriginalTemplate(null);
               setSelectedTemplateId('');
               setNewAttachments([]);
+              setRemovedAttachments([]);
             }}
             className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200"
           >

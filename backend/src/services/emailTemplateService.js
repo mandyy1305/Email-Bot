@@ -64,6 +64,14 @@ class EmailTemplateService {
    */
   async updateTemplate(templateId, updateData) {
     try {
+      // If this template is being set as default, remove default from all others
+      if (updateData.isDefault) {
+        await EmailTemplate.updateMany(
+          { _id: { $ne: templateId } },
+          { $set: { isDefault: false } }
+        );
+      }
+
       const template = await EmailTemplate.findByIdAndUpdate(
         templateId,
         updateData,
