@@ -2,6 +2,7 @@ const express = require('express');
 const healthRoutes = require('./healthRoutes');
 const emailRoutes = require('./emailRoutes');
 const historyRoutes = require('./historyRoutes');
+const templateRoutes = require('./templateRoutes');
 const { apiLimiter } = require('../middleware');
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.use('/status', healthRoutes); // Legacy route
 // Email routes
 router.use('/emails', emailRoutes);
 router.use('/history', historyRoutes);
+router.use('/templates', templateRoutes);
 
 // API documentation route (future enhancement)
 router.get('/', (req, res) => {
@@ -34,6 +36,17 @@ router.get('/', (req, res) => {
         cancelJob: 'DELETE /api/emails/job/:jobId',
         pauseQueue: 'POST /api/emails/queue/pause',
         resumeQueue: 'POST /api/emails/queue/resume',
+      },
+      templates: {
+        list: 'GET /api/templates',
+        get: 'GET /api/templates/:id',
+        create: 'POST /api/templates',
+        update: 'PUT /api/templates/:id',
+        delete: 'DELETE /api/templates/:id',
+        default: 'GET /api/templates/default',
+        setDefault: 'PUT /api/templates/:id/default',
+        createDefault: 'POST /api/templates/default',
+        stats: 'GET /api/templates/stats',
       },
     },
   });

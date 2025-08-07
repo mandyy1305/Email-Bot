@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard'
 import ExcelUpload from './components/ExcelUpload'
 import ManualEntry from './components/ManualEntry'
 import EmailPreview from './components/EmailPreview'
-import EmailConfiguration from './components/EmailConfiguration'
+import EmailTemplateEditor from './components/EmailTemplateEditor'
 import ConfigurationSummary from './components/ConfigurationSummary'
 import SendEmailButton from './components/SendEmailButton'
 
@@ -56,19 +56,31 @@ function App() {
 
       // Convert File objects to base64 for transmission
       const processedAttachments = await Promise.all(
-        emailConfig.attachments.map(async (file) => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              resolve({
-                name: file.name,
-                type: file.type,
-                data: reader.result.split(',')[1], // Remove data URL prefix
-                size: file.size
-              });
+        emailConfig.attachments.map(async (attachment) => {
+          // Check if it's a File object (from file input) or template attachment (from database)
+          if (attachment instanceof File) {
+            // Handle File objects
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                resolve({
+                  name: attachment.name,
+                  type: attachment.type,
+                  data: reader.result.split(',')[1], // Remove data URL prefix
+                  size: attachment.size
+                });
+              };
+              reader.readAsDataURL(attachment);
+            });
+          } else {
+            // Handle template attachments (already stored)
+            return {
+              name: attachment.originalname || attachment.filename,
+              type: attachment.mimetype,
+              path: attachment.path, // Backend will handle file reading
+              size: attachment.size
             };
-            reader.readAsDataURL(file);
-          });
+          }
         })
       );
 
@@ -158,9 +170,17 @@ function App() {
         )}
 
         {activeTab === 'email' && (
-          <EmailConfiguration
-            emailConfig={emailConfig}
-            setEmailConfig={setEmailConfig}
+          <EmailTemplateEditor
+            onTemplateChange={(template) => {
+              setEmailConfig({
+                subject: template.subject || '',
+                body: template.body || '',
+                attachments: template.attachments || []
+              });
+            }}
+            onSave={(template) => {
+              console.log('Template saved:', template);
+            }}
           />
         )}
 

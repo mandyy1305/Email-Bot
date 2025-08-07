@@ -61,6 +61,13 @@ class EmailService {
             content: Buffer.from(attachment.data, 'base64'),
             contentType: attachment.type || 'application/octet-stream'
           };
+        } else if (attachment.path) {
+          // Template attachment with file path (stored on server)
+          return {
+            filename: attachment.name || attachment.originalname,
+            path: attachment.path,
+            contentType: attachment.type || attachment.mimetype || 'application/octet-stream'
+          };
         } else {
           // Fallback - create a generic name
           return {

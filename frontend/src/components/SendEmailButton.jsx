@@ -22,7 +22,7 @@ const SendEmailButton = ({
         className={`
           px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 transform
           ${isReadyToSend 
-            ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white hover:from-green-600 hover:to-blue-600 hover:scale-105 shadow-lg cursor-pointer' 
+            ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg cursor-pointer' 
             : 'bg-slate-600 text-slate-400 cursor-not-allowed'
           }
         `}

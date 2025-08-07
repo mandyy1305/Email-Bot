@@ -138,7 +138,7 @@ const ManualEntry = ({ manualData, setManualData, processedData, setProcessedDat
             <div className="flex items-end">
               <button
                 onClick={addEntry}
-                className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all duration-200 shadow-lg"
               >
                 Add
               </button>
@@ -167,7 +167,7 @@ const ManualEntry = ({ manualData, setManualData, processedData, setProcessedDat
               </h3>
               <button
                 onClick={processData}
-                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all duration-200 shadow-lg"
               >
                 Process Data & Create Preview
               </button>
