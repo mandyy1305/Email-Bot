@@ -24,20 +24,30 @@ const Dashboard = () => {
       const historyResponse = await fetch('/api/history/emails');
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
-        const emails = Array.isArray(historyData.data) ? historyData.data : 
+        console.log('Email history response:', historyData); // Debug log
+        
+        // The backend returns: { success: true, data: { emails: [...], pagination: {...} } }
+        const emails = Array.isArray(historyData.data?.emails) ? historyData.data.emails : 
+                      Array.isArray(historyData.data) ? historyData.data : 
                       Array.isArray(historyData.emails) ? historyData.emails : 
                       Array.isArray(historyData) ? historyData : [];
         setEmailHistory(emails);
+        console.log('Processed emails:', emails); // Debug log
       }
 
       // Fetch campaigns
       const campaignsResponse = await fetch('/api/history/campaigns');
       if (campaignsResponse.ok) {
         const campaignsData = await campaignsResponse.json();
-        const campaigns = Array.isArray(campaignsData.data) ? campaignsData.data : 
+        console.log('Campaigns response:', campaignsData); // Debug log
+        
+        // The backend returns: { success: true, data: { campaigns: [...] } }
+        const campaigns = Array.isArray(campaignsData.data?.campaigns) ? campaignsData.data.campaigns : 
+                         Array.isArray(campaignsData.data) ? campaignsData.data : 
                          Array.isArray(campaignsData.campaigns) ? campaignsData.campaigns : 
                          Array.isArray(campaignsData) ? campaignsData : [];
         setCampaigns(campaigns);
+        console.log('Processed campaigns:', campaigns); // Debug log
       }
 
       // Fetch stats
@@ -207,7 +217,7 @@ const Dashboard = () => {
                     <tbody className="divide-y divide-gray-700">
                       {emailHistory.map((email, index) => (
                         <tr key={email._id || index} className="hover:bg-gray-700/50">
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-white">{email.recipient || email.to || email.email || 'N/A'}</td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-white">{email.recipient?.email || email.to || email.email || 'N/A'}</td>
                           <td className="px-4 py-4 text-sm text-gray-300 max-w-xs truncate">{email.subject || 'N/A'}</td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(email.status)}`}>

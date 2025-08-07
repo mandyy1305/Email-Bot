@@ -104,12 +104,28 @@ const getEmailJobStatus = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const getQueueStats = asyncHandler(async (req, res) => {
-  const stats = await queueService.getQueueStats();
+  const emailHistoryService = require('../services/emailHistoryService');
+  
+  // Get both queue stats and email history stats
+  const [queueStats, emailStats] = await Promise.all([
+    queueService.getQueueStats(),
+    emailHistoryService.getEmailStats()
+  ]);
+
+  // Combine the data for the dashboard
+  const combinedStats = {
+    totalEmails: emailStats.totalEmails || 0,
+    sentEmails: emailStats.statusStats?.sent || 0,
+    failedEmails: emailStats.statusStats?.failed || 0,
+    pendingEmails: (emailStats.statusStats?.queued || 0) + (emailStats.statusStats?.processing || 0),
+    queueStats,
+    emailStats
+  };
 
   res.json(new ApiResponse(
     200,
-    stats,
-    'Queue statistics retrieved successfully'
+    combinedStats,
+    'Email statistics retrieved successfully'
   ));
 });
 

@@ -169,6 +169,21 @@ class QueueService {
 
         const job = await this.emailQueue.add('sendEmail', emailData, jobOptions);
         
+        // Create database record for email tracking
+        try {
+          await emailHistoryService.createEmailRecord({
+            jobId: job.id.toString(),
+            to: emailData.to,
+            subject: emailData.subject,
+            body: emailData.body,
+            attachments: emailData.attachments || [],
+            personalizedData: emailData.personalizedData || {},
+            source: emailData.source || 'bulk'
+          });
+        } catch (dbError) {
+          logger.warn(`Failed to create database record for job ${job.id}:`, dbError);
+        }
+        
         jobs.push({
           jobId: job.id,
           recipient: emailData.to,

@@ -78,7 +78,7 @@ const emailHistorySchema = new mongoose.Schema({
   // Source Information
   source: {
     type: String,
-    enum: ['excel', 'manual', 'api'],
+    enum: ['excel', 'manual', 'api', 'bulk'],
     default: 'manual'
   },
   
