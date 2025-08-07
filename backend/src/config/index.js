@@ -45,6 +45,8 @@ const config = {
     },
     from: process.env.EMAIL_FROM || 'noreply@emailbot.com',
     senderName: process.env.EMAIL_SENDER_NAME || 'Email Bot',
+    // Multiple users configuration
+    users: process.env.SMTP_USERS ? JSON.parse(process.env.SMTP_USERS) : [],
   },
 
   // File Upload Configuration
@@ -95,7 +97,9 @@ const config = {
       duration: parseInt(process.env.QUEUE_RATE_LIMIT_DURATION) || 60000, // 1 minute
     },
     delay: {
-      betweenEmails: parseInt(process.env.EMAIL_DELAY_SECONDS) || 5, // seconds between emails
+      betweenEmails: parseInt(process.env.EMAIL_DELAY_SECONDS) || 5, // seconds between emails (for backwards compatibility)
+      minDelay: parseInt(process.env.EMAIL_DELAY_MIN_SECONDS) || parseInt(process.env.EMAIL_DELAY_SECONDS) || 5, // minimum delay
+      maxDelay: parseInt(process.env.EMAIL_DELAY_MAX_SECONDS) || parseInt(process.env.EMAIL_DELAY_SECONDS) || 15, // maximum delay
     },
   },
 

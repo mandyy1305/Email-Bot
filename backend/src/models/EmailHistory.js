@@ -20,6 +20,16 @@ const emailHistorySchema = new mongoose.Schema({
     fullName: String
   },
   
+  // Sender Information
+  sender: {
+    email: {
+      type: String,
+      index: true
+    },
+    name: String,
+    userId: String // For tracking which configured user was used
+  },
+  
   // Email Content
   subject: {
     type: String,

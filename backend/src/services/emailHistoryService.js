@@ -60,11 +60,20 @@ class EmailHistoryService {
   /**
    * Update email status to sent
    */
-  async markAsSent(jobId, messageId) {
+  async markAsSent(jobId, messageId, senderInfo = null) {
     try {
       const record = await EmailHistory.findOne({ jobId });
       if (record) {
-        await record.markAsSent(messageId);
+        record.status = 'sent';
+        record.sentAt = new Date();
+        record.messageId = messageId;
+        
+        // Add sender information if provided
+        if (senderInfo) {
+          record.sender = senderInfo;
+        }
+        
+        await record.save();
         logger.info(`Email ${jobId} marked as sent with messageId: ${messageId}`);
       }
       return record;
@@ -77,11 +86,26 @@ class EmailHistoryService {
   /**
    * Update email status to failed
    */
-  async markAsFailed(jobId, error) {
+  async markAsFailed(jobId, error, senderInfo = null) {
     try {
       const record = await EmailHistory.findOne({ jobId });
       if (record) {
-        await record.markAsFailed(error);
+        record.status = 'failed';
+        record.failedAt = new Date();
+        record.error = {
+          message: error.message,
+          code: error.code,
+          details: error.stack
+        };
+        record.delivery.attempts += 1;
+        record.delivery.lastAttempt = new Date();
+        
+        // Add sender information if provided
+        if (senderInfo) {
+          record.sender = senderInfo;
+        }
+        
+        await record.save();
         logger.info(`Email ${jobId} marked as failed: ${error.message}`);
       }
       return record;

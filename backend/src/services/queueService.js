@@ -142,7 +142,16 @@ class QueueService {
   }
 
   /**
-   * Add bulk emails to queue with controlled rate limiting
+   * Generate random delay between min and max values
+   */
+  getRandomDelay() {
+    const minDelayMs = config.queue.delay.minDelay * 1000;
+    const maxDelayMs = config.queue.delay.maxDelay * 1000;
+    return Math.floor(Math.random() * (maxDelayMs - minDelayMs + 1)) + minDelayMs;
+  }
+
+  /**
+   * Add bulk emails to queue with random delays
    */
   async addBulkEmailsToQueue(emailsData, options = {}) {
     if (!this.isInitialized) {
@@ -151,17 +160,17 @@ class QueueService {
 
     try {
       const jobs = [];
-      const delayBetweenEmails = (config.queue.delay.betweenEmails || 5) * 1000; // Convert to milliseconds
-      let currentDelay = 0;
+      let cumulativeDelay = 0;
 
       for (let i = 0; i < emailsData.length; i++) {
         const emailData = emailsData[i];
         
-        // Calculate delay for rate limiting
-        currentDelay = i * delayBetweenEmails;
+        // Calculate random delay for this email
+        const randomDelay = this.getRandomDelay();
+        cumulativeDelay += randomDelay;
         
         const jobOptions = {
-          delay: currentDelay,
+          delay: cumulativeDelay,
           priority: options.priority || 0,
           attempts: config.queue.emailQueue.attempts,
           backoff: config.queue.emailQueue.backoff,
@@ -178,7 +187,8 @@ class QueueService {
             body: emailData.body,
             attachments: emailData.attachments || [],
             personalizedData: emailData.personalizedData || {},
-            source: emailData.source || 'bulk'
+            source: emailData.source || 'bulk',
+            senderInfo: emailData.senderInfo || null // Will be updated when email is actually sent
           });
         } catch (dbError) {
           logger.warn(`Failed to create database record for job ${job.id}:`, dbError);
@@ -187,16 +197,19 @@ class QueueService {
         jobs.push({
           jobId: job.id,
           recipient: emailData.to,
-          scheduledFor: new Date(Date.now() + currentDelay),
+          scheduledFor: new Date(Date.now() + cumulativeDelay),
+          delayUsed: randomDelay / 1000, // Store the actual delay used for this email in seconds
         });
       }
 
-      logger.info(`📧 Added ${jobs.length} emails to queue with ${delayBetweenEmails/1000}s intervals`);
+      const avgDelay = (config.queue.delay.minDelay + config.queue.delay.maxDelay) / 2;
+      logger.info(`📧 Added ${jobs.length} emails to queue with random delays (${config.queue.delay.minDelay}-${config.queue.delay.maxDelay}s)`);
 
       return {
         totalJobs: jobs.length,
         jobs: jobs,
-        estimatedCompletionTime: new Date(Date.now() + currentDelay + 30000), // +30s buffer
+        estimatedCompletionTime: new Date(Date.now() + cumulativeDelay + 30000), // +30s buffer
+        delayRange: `${config.queue.delay.minDelay}-${config.queue.delay.maxDelay} seconds`,
       };
 
     } catch (error) {

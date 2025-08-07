@@ -3,15 +3,17 @@ const config = require('../config');
 const logger = require('../utils/logger');
 const { ApiError } = require('../utils/ApiError');
 const emailHistoryService = require('./emailHistoryService');
+const emailUserService = require('./emailUserService');
 
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.transporterCache = new Map(); // Cache transporters for different users
     this.initializeTransporter();
   }
 
   /**
-   * Initialize email transporter
+   * Initialize email transporter (fallback/default)
    */
   async initializeTransporter() {
     try {
@@ -25,16 +27,53 @@ class EmailService {
       // Verify connection configuration (with better error handling)
       try {
         await this.transporter.verify();
-        logger.info('Email transporter initialized and verified successfully');
+        logger.info('Default email transporter initialized and verified successfully');
       } catch (verifyError) {
-        logger.warn('Email transporter created but verification failed:', verifyError.message);
+        logger.warn('Default email transporter created but verification failed:', verifyError.message);
         logger.info('Email service will continue - verification will happen on first send attempt');
         // Don't throw error here - let the service start and fail gracefully on actual send
       }
     } catch (error) {
-      logger.error('Failed to initialize email transporter:', error);
+      logger.error('Failed to initialize default email transporter:', error);
       throw new ApiError(500, 'Email service initialization failed');
     }
+  }
+
+  /**
+   * Create transporter for a specific user
+   */
+  async createTransporterForUser(user) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host: user.host,
+        port: user.port,
+        secure: user.secure,
+        auth: {
+          user: user.email,
+          pass: user.password,
+        },
+      });
+
+      // Cache the transporter for reuse
+      this.transporterCache.set(user.email, transporter);
+      
+      logger.debug(`Created transporter for user: ${user.email}`);
+      return transporter;
+    } catch (error) {
+      logger.error(`Failed to create transporter for user ${user.email}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get transporter for a user (with caching)
+   */
+  async getTransporterForUser(user) {
+    if (this.transporterCache.has(user.email)) {
+      return this.transporterCache.get(user.email);
+    }
+    
+    return await this.createTransporterForUser(user);
   }
 
   /**
@@ -45,8 +84,22 @@ class EmailService {
       // Log the original email address for debugging
       logger.info(`Original email address: ${to}`);
       
-      if (!this.transporter) {
-        await this.initializeTransporter();
+      // Select a random user for sending this email
+      const selectedUser = emailUserService.getRandomUser();
+      let transporter = this.transporter;
+      let fromEmail = config.email.from;
+      let senderName = config.email.senderName;
+      
+      if (selectedUser) {
+        transporter = await this.getTransporterForUser(selectedUser);
+        fromEmail = selectedUser.email;
+        senderName = selectedUser.name;
+        logger.info(`📧 Using SMTP user: ${selectedUser.email} (${selectedUser.name})`);
+      } else {
+        logger.warn('⚠️ No SMTP users configured, using default transporter');
+        if (!this.transporter) {
+          await this.initializeTransporter();
+        }
       }
 
       // Process attachments to proper nodemailer format
@@ -88,20 +141,25 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: `"${config.email.senderName}" <${config.email.from}>`,
+        from: `"${senderName}" <${fromEmail}>`,
         to: to,
         subject: subject,
         html: body,
         attachments: processedAttachments,
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      const result = await transporter.sendMail(mailOptions);
       logger.info(`Email sent successfully to ${to}`);
       
       // Mark as sent in database if jobId is provided
       if (jobId) {
         try {
-          await emailHistoryService.markAsSent(jobId, result.messageId);
+          // Update with sender information
+          await emailHistoryService.markAsSent(jobId, result.messageId, {
+            email: fromEmail,
+            name: senderName,
+            userId: selectedUser ? selectedUser.id : 'default'
+          });
         } catch (dbError) {
           logger.warn(`Failed to update database status for job ${jobId}:`, dbError);
         }
@@ -118,7 +176,11 @@ class EmailService {
       // Mark as failed in database if jobId is provided
       if (jobId) {
         try {
-          await emailHistoryService.markAsFailed(jobId, error);
+          await emailHistoryService.markAsFailed(jobId, error, {
+            email: fromEmail,
+            name: senderName,
+            userId: selectedUser ? selectedUser.id : 'default'
+          });
         } catch (dbError) {
           logger.warn(`Failed to update database status for job ${jobId}:`, dbError);
         }

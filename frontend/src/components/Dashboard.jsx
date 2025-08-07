@@ -208,6 +208,7 @@ const Dashboard = () => {
                     <thead>
                       <tr className="border-b border-gray-700">
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Recipient</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sender</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Subject</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Sent At</th>
@@ -218,6 +219,10 @@ const Dashboard = () => {
                       {emailHistory.map((email, index) => (
                         <tr key={email._id || index} className="hover:bg-gray-700/50">
                           <td className="px-4 py-4 whitespace-nowrap text-sm text-white">{email.recipient?.email || email.to || email.email || 'N/A'}</td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-blue-400">{email.sender?.email || 'N/A'}</div>
+                            <div className="text-xs text-gray-500">{email.sender?.name || ''}</div>
+                          </td>
                           <td className="px-4 py-4 text-sm text-gray-300 max-w-xs truncate">{email.subject || 'N/A'}</td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white ${getStatusColor(email.status)}`}>
